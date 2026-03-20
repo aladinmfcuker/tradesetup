@@ -16,9 +16,10 @@ def send_discord_alert(message):
             logging.error(f"Failed to send Discord alert: {e}")
 
 class PaperTrader:
-    def __init__(self, initial_balance=10000.0):
+    def __init__(self, initial_balance=10000.0, symbol='xauusdt'):
         self.initial_balance = initial_balance
         self.balance = initial_balance
+        self.symbol = symbol
         self.positions = []
         self.trade_history = []
         self.current_price = 0.0
@@ -29,7 +30,7 @@ class PaperTrader:
 
     def _load_active_positions(self):
         try:
-            self.positions = db.get_active_positions()
+            self.positions = db.get_active_positions(symbol=self.symbol)
             # Calculate the amount of balance locked in margin for active positions
             margin_in_use = sum([pos["entry_price"] * pos["size"] for pos in self.positions])
             # Balance should be updated to reflect locked margin
@@ -41,7 +42,7 @@ class PaperTrader:
 
     def _save_active_positions(self):
         try:
-            db.save_active_positions(self.positions)
+            db.save_active_positions(self.positions, symbol=self.symbol)
         except Exception as e:
             logging.error(f"Failed to save active positions to DB: {e}")
 
@@ -50,10 +51,11 @@ class PaperTrader:
 
     def _load_history(self):
         try:
-            self.trade_history = db.get_trade_history(limit=50)
+            self.trade_history = db.get_trade_history(limit=50, symbol=self.symbol)
             
-            # Recalculate balance from history to be accurate
-            for trade in self.trade_history:
+            # Recalculate balance from history to be accurate. We load ALL history to get balance but only use symbol-specific for AI
+            all_history = db.get_trade_history(limit=1000)
+            for trade in all_history:
                 self.balance += float(trade.get("pnl", 0))
                 
             logging.info(f"Loaded {len(self.trade_history)} past trades for AI learning. Current simulated balance: ${self.balance:.2f}")
@@ -237,6 +239,7 @@ class PaperTrader:
             return
 
         position = {
+            "symbol": self.symbol,
             "type": position_type,
             "entry_price": self.current_price,
             "size": size,
@@ -268,6 +271,7 @@ class PaperTrader:
             self._save_active_positions()
         
         trade_record = {
+            "symbol": pos.get("symbol", self.symbol),
             "type": pos["type"],
             "entry_price": pos["entry_price"],
             "close_price": exit_price,
@@ -358,6 +362,7 @@ class PaperTrader:
                 unrealized_pnl = (pos["entry_price"] - self.current_price) * pos["size"]
                 
             formatted_positions.append({
+                "symbol": pos.get("symbol", self.symbol),
                 "type": pos["type"],
                 "entry_price": pos["entry_price"],
                 "size": pos["size"],
