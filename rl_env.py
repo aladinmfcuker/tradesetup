@@ -99,12 +99,16 @@ class AssetTradingEnv(gym.Env):
         next_price = float(self.df.iloc[self.current_step]['close'])
         current_pv = self._portfolio_value(next_price)
 
-        # Step Returns for Sharpe
+        # Step Returns for Sharpe and Sortino
         step_ret = (current_pv - prev_pv) / max(prev_pv, 1e-9)
         self.returns_history.append(step_ret)
 
         # Core dense reward (scaled up to prevent gradient vanishing)
-        reward += step_ret * 100.0 
+        # Risk-adjusted dense reward: penalize negative returns more heavily
+        if step_ret < 0:
+            reward += step_ret * 200.0  # Double penalty for downside volatility
+        else:
+            reward += step_ret * 100.0
 
         # Carry / Inactivity
         if self.position != 0:
@@ -125,21 +129,27 @@ class AssetTradingEnv(gym.Env):
             terminated = True
             reward -= 1.0
 
-        # ── TERMINAL REWARD: Sharpe + Profit Factor ──
+        # ── TERMINAL REWARD: Sortino + Profit Factor ──
         if truncated or terminated:
             pf = self.gross_profit / max(self.gross_loss, 1e-9)
             
             returns_array = np.array(self.returns_history)
-            std = np.std(returns_array)
-            sharpe = 0.0
-            if std > 0:
-                sharpe = np.mean(returns_array) / std * math.sqrt(252 * 24)
             
+            # Calculate Sortino Ratio instead of Sharpe for better risk-adjusted returns
+            downside_returns = returns_array[returns_array < 0]
+            downside_std = np.std(downside_returns) if len(downside_returns) > 0 else 0.0
+
+            sortino = 0.0
+            if downside_std > 0:
+                sortino = np.mean(returns_array) / downside_std * math.sqrt(252 * 24)
+            elif len(returns_array) > 0 and np.mean(returns_array) > 0:
+                sortino = 5.0  # Max Sortino if no downside volatility
+
             pf = min(pf, 5.0) 
-            sharpe = min(max(sharpe, -2.0), 5.0)
+            sortino = min(max(sortino, -2.0), 5.0)
 
             if self.total_trades > 0:
-                terminal_bonus = (sharpe + pf) * self.TERMINAL_SCALE
+                terminal_bonus = (sortino + pf) * self.TERMINAL_SCALE
                 reward += terminal_bonus
 
         obs = self._get_observation()

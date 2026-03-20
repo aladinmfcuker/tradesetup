@@ -2,14 +2,14 @@ import asyncio
 import pandas as pd
 import numpy as np
 from indicators import calculate_indicators
-from ai_agent import GoldAIAgent
+from ai_agent import TradingAIAgent
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 async def test_run():
     logging.info("Starting test...")
-    agent = GoldAIAgent()
+    agent = TradingAIAgent()
     
     # Generate 250 rows of dummy data for EMA200
     dates = pd.date_range(end=pd.Timestamp.now(tz='UTC'), periods=250, freq='h')

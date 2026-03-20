@@ -175,10 +175,10 @@ async def start_api():
     await server.serve()
 
 async def main(use_ui=True):
-    logging.info("Starting {args.symbol.upper()} Price Prediction & Trading System...")
+    logging.info(f"Starting {args.symbol.upper()} Price Prediction & Trading System...")
     agent = TradingAIAgent(symbol=args.symbol)
     
-    trader = PaperTrader(initial_balance=10000.0)
+    trader = PaperTrader(initial_balance=10000.0, symbol=args.symbol)
     state.trader = trader # Link to global state for UI
     
     feed_1h = BinanceFeed(symbol=args.symbol, timeframe="1h")

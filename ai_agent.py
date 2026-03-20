@@ -56,29 +56,29 @@ You MUST analyze your past mistakes and successes.
 
 REGIME-GATED DECISION MAKING:
 You will receive a MARKET REGIME section. This is mathematically computed from ADX and volatility.
-- In TRENDING regimes: momentum signals have edge. Prioritize EMA alignment and MACD direction.
-- In RANGING regime: mean-reversion signals have edge. Prioritize Z-Score and RSI extremes.
-- In VOLATILE regime: REDUCE POSITION SIZE by 50%. Widen stops. Prefer NEUTRAL unless conviction is very high.
-- NEVER fight the regime. A counter-regime trade requires explicit justification.
+- In TRENDING regimes: momentum signals have edge. Prioritize EMA alignment and MACD direction. Use tight stop losses trailing the EMA20.
+- In RANGING regime: mean-reversion signals have edge. Prioritize Z-Score and RSI extremes. Look for RSI > 70 or < 30 and Z-Score > 1.5 or < -1.5 for fade entries.
+- In VOLATILE regime: REDUCE POSITION SIZE by 50%. Widen stops to at least 2x ATR. Prefer NEUTRAL unless conviction is very high.
+- NEVER fight the regime. A counter-regime trade requires explicit mathematical justification from multi-timeframe confluence.
 
 ENSEMBLE CONVICTION:
 You will receive a CONFLUENCE SCORE (0-100) combining the RL signal, regime alignment, and multi-timeframe indicators.
-- Score >= 75 (HIGH_CONVICTION): Full position size allowed.
-- Score 55-74 (MODERATE): Reduce position to 0.7x.
-- Score 35-54 (WEAK): Skip or use 0.3x size.
-- Score < 35 (NO_EDGE): STAY NEUTRAL. The mathematical signals conflict.
+- Score >= 75 (HIGH_CONVICTION): Full position size allowed. Highly recommended to enter the trade.
+- Score 55-74 (MODERATE): Reduce position to 0.7x. Enter only if Z-Score and MACD align.
+- Score 35-54 (WEAK): Skip or use 0.3x size. Wait for better setups.
+- Score < 35 (NO_EDGE): STAY NEUTRAL. The mathematical signals conflict heavily.
 
 Your analysis must always:
-1. Consider multiple timeframes and quantitative extremes.
-2. Weigh bullish and bearish factors objectively.
-3. Factor in the lessons learned from recent trades.
-4. Provide quantified confidence levels.
-5. Explicitly respect the current market regime and confluence score.
+1. Consider multiple timeframes and quantitative extremes. Check if 1H and 4H timeframes align.
+2. Weigh bullish and bearish factors objectively. Use specific indicator values to justify decisions.
+3. Factor in the lessons learned from recent trades to adjust your risk assumptions.
+4. Provide quantified confidence levels (0-100%).
+5. Explicitly respect the current market regime and confluence score. Do not override a WEAK confluence score unless macro factors present an extreme shock.
 
-NEVER provide guarantees. Always disclose limitations.
+NEVER provide guarantees. Always disclose limitations. Use dynamic trailing stops based on ATR.
 """
 
-TECHNICAL_ANALYSIS_PROMPT_TEMPLATE = """Analyze {self.symbol.upper()} using the following comprehensive data:
+TECHNICAL_ANALYSIS_PROMPT_TEMPLATE = """Analyze {symbol} using the following comprehensive data:
 
 MACRO & CORRELATED ASSETS:
 - DXY (US Dollar Index): {dxy}
@@ -216,6 +216,7 @@ class TradingAIAgent:
         comp = confluence.get('components', {})
 
         return TECHNICAL_ANALYSIS_PROMPT_TEMPLATE.format(
+            symbol=self.symbol.upper(),
             dxy=macro_data.get('dxy', 'Unknown'),
             us10y=macro_data.get('us10y', 'Unknown'),
 

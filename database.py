@@ -14,6 +14,7 @@ def init_db():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS trades (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT DEFAULT 'xauusdt',
         type TEXT NOT NULL,
         entry_price REAL NOT NULL,
         close_price REAL,
@@ -51,6 +52,7 @@ def init_db():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS active_positions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        symbol TEXT DEFAULT 'xauusdt',
         type TEXT NOT NULL,
         entry_price REAL NOT NULL,
         size REAL NOT NULL,
@@ -63,6 +65,17 @@ def init_db():
     )
     ''')
     
+    # Check if symbol column exists in trades and active_positions (for existing DBs)
+    cursor.execute("PRAGMA table_info(trades)")
+    columns = [info[1] for info in cursor.fetchall()]
+    if 'symbol' not in columns:
+        cursor.execute("ALTER TABLE trades ADD COLUMN symbol TEXT DEFAULT 'xauusdt'")
+
+    cursor.execute("PRAGMA table_info(active_positions)")
+    columns = [info[1] for info in cursor.fetchall()]
+    if 'symbol' not in columns:
+        cursor.execute("ALTER TABLE active_positions ADD COLUMN symbol TEXT DEFAULT 'xauusdt'")
+
     conn.commit()
     conn.close()
 
@@ -88,9 +101,10 @@ def migrate_from_json():
             logging.info("Migrating old JSON trade history to SQLite...")
             for trade in data["history"]:
                 cursor.execute('''
-                INSERT INTO trades (type, entry_price, close_price, target, stop_loss, pnl, margin_used, reason, ai_reasoning, timestamp, close_timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO trades (symbol, type, entry_price, close_price, target, stop_loss, pnl, margin_used, reason, ai_reasoning, timestamp, close_timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
+                    trade.get("symbol", "xauusdt"),
                     trade.get("type"),
                     trade.get("entry_price"),
                     trade.get("close_price"),
@@ -155,16 +169,18 @@ class DatabaseManager:
         
     def save_trade(self, trade_data):
         return self.execute('''
-            INSERT INTO trades (type, entry_price, close_price, target, stop_loss, pnl, margin_used, reason, ai_reasoning, timestamp, close_timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO trades (symbol, type, entry_price, close_price, target, stop_loss, pnl, margin_used, reason, ai_reasoning, timestamp, close_timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            trade_data.get("type"), trade_data.get("entry_price"), trade_data.get("close_price"), 
+            trade_data.get("symbol", "xauusdt"), trade_data.get("type"), trade_data.get("entry_price"), trade_data.get("close_price"),
             trade_data.get("target"), trade_data.get("stop_loss"), trade_data.get("pnl"), 
             trade_data.get("margin_used", 0), trade_data.get("reason"), trade_data.get("ai_reasoning", ""), 
             trade_data.get("timestamp"), datetime.now().isoformat()
         ))
         
-    def get_trade_history(self, limit=50):
+    def get_trade_history(self, limit=50, symbol=None):
+        if symbol:
+            return self.fetch_all("SELECT * FROM trades WHERE symbol = ? ORDER BY timestamp DESC LIMIT ?", (symbol, limit))
         return self.fetch_all("SELECT * FROM trades ORDER BY timestamp DESC LIMIT ?", (limit,))
 
     def save_portfolio_snapshot(self, balance, open_pnl, total_equity):
@@ -179,24 +195,28 @@ class DatabaseManager:
         # Group by hour/day if needed, but for now just return the latest 100 snapshots
         return self.fetch_all("SELECT * FROM portfolio_history ORDER BY id DESC LIMIT 100")
 
-    def save_active_positions(self, positions):
-        self.execute("DELETE FROM active_positions")
+    def save_active_positions(self, positions, symbol='xauusdt'):
+        self.execute("DELETE FROM active_positions WHERE symbol = ?", (symbol,))
         for pos in positions:
             self.execute('''
-                INSERT INTO active_positions (type, entry_price, size, target, stop_loss, open_time, ai_reasoning, peak_price, floor_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO active_positions (symbol, type, entry_price, size, target, stop_loss, open_time, ai_reasoning, peak_price, floor_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                pos["type"], pos["entry_price"], pos["size"], pos["target"], pos["stop_loss"],
+                pos.get("symbol", symbol), pos["type"], pos["entry_price"], pos["size"], pos["target"], pos["stop_loss"],
                 pos["open_time"].isoformat() if hasattr(pos["open_time"], 'isoformat') else str(pos["open_time"]),
                 pos.get("ai_reasoning", ""),
                 pos.get("peak_price"), pos.get("floor_price")
             ))
 
-    def get_active_positions(self):
-        rows = self.fetch_all("SELECT * FROM active_positions")
+    def get_active_positions(self, symbol=None):
+        if symbol:
+            rows = self.fetch_all("SELECT * FROM active_positions WHERE symbol = ?", (symbol,))
+        else:
+            rows = self.fetch_all("SELECT * FROM active_positions")
         positions = []
         for row in rows:
             pos = {
+                "symbol": row.get("symbol", "xauusdt"),
                 "type": row["type"],
                 "entry_price": row["entry_price"],
                 "size": row["size"],
