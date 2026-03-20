@@ -4,14 +4,14 @@ import logging
 import uvicorn
 from data_feed import BinanceFeed
 from indicators import calculate_indicators
-from ai_agent import GoldAIAgent
+from ai_agent import TradingAIAgent
 from paper_trader import PaperTrader
 from app_state import state
 from api import app
 from sentiment import get_market_sentiment
 from macro_data import get_macro_data
 from regime_detector import get_current_regime
-from rl_env import GoldTradingEnv
+from rl_env import AssetTradingEnv
 
 # --- LOGGING SETUP ---
 # Basic config handles console output
@@ -115,7 +115,7 @@ async def analysis_loop(feed_1h, feed_4h, feed_1d, agent, trader):
             if agent.rl_model:
                 try:
                     import numpy as np
-                    features  = GoldTradingEnv.FEATURE_COLUMNS
+                    features  = AssetTradingEnv.FEATURE_COLUMNS
                     obs_vals  = [float(latest_1h.get(col, 0.0)) for col in features]
                     obs_vals.extend([0.0, 0.0, 0.0])  # position=0, current_risk_fraction=0, unrealised_pnl=0
                     obs = np.nan_to_num(np.array(obs_vals, dtype=np.float32), nan=0.0)
@@ -175,15 +175,15 @@ async def start_api():
     await server.serve()
 
 async def main(use_ui=True):
-    logging.info("Starting Gold Price Prediction & Trading System...")
-    agent = GoldAIAgent()
+    logging.info("Starting {args.symbol.upper()} Price Prediction & Trading System...")
+    agent = TradingAIAgent(symbol=args.symbol)
     
     trader = PaperTrader(initial_balance=10000.0)
     state.trader = trader # Link to global state for UI
     
-    feed_1h = BinanceFeed(symbol="xauusdt", timeframe="1h")
-    feed_4h = BinanceFeed(symbol="xauusdt", timeframe="4h")
-    feed_1d = BinanceFeed(symbol="xauusdt", timeframe="1d")
+    feed_1h = BinanceFeed(symbol=args.symbol, timeframe="1h")
+    feed_4h = BinanceFeed(symbol=args.symbol, timeframe="4h")
+    feed_1d = BinanceFeed(symbol=args.symbol, timeframe="1d")
     
     await asyncio.gather(feed_1h.initialize(), feed_4h.initialize(), feed_1d.initialize())
     
@@ -203,6 +203,7 @@ async def main(use_ui=True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Gold AI Trading Bot")
+    parser.add_argument("--symbol", type=str, default="xauusdt", help="Asset symbol to trade (e.g., xauusdt, btcusdt)")
     parser.add_argument("--no-ui", action="store_true", help="Run without the Web Dashboard (CLI mode only)")
     args = parser.parse_args()
     

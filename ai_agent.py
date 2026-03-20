@@ -34,7 +34,7 @@ from stable_baselines3 import PPO
 
 from regime_detector import get_current_regime, build_confluence_score
 
-SYSTEM_PROMPT = """You are an expert gold market analyst and adaptive quantitative trading algorithm.
+SYSTEM_PROMPT = """You are an expert financial market analyst and adaptive quantitative trading algorithm.
 Your deep knowledge includes:
 - Technical analysis (RSI, MACD, Fibonacci, Bollinger Bands, Elliott Wave)
 - Institutional Quantitative Metrics:
@@ -78,7 +78,7 @@ Your analysis must always:
 NEVER provide guarantees. Always disclose limitations.
 """
 
-TECHNICAL_ANALYSIS_PROMPT_TEMPLATE = """Analyze XAU/USDT using the following comprehensive data:
+TECHNICAL_ANALYSIS_PROMPT_TEMPLATE = """Analyze {self.symbol.upper()} using the following comprehensive data:
 
 MACRO & CORRELATED ASSETS:
 - DXY (US Dollar Index): {dxy}
@@ -156,11 +156,12 @@ CRITICAL: "target" and "stop_loss" MUST be a single float number. Do NOT provide
 """
 
 
-class GoldAIAgent:
-    def __init__(self):
+class TradingAIAgent:
+    def __init__(self, symbol='xauusdt'):
         logging.info("Initialized Gold AI Agent V6.0 (Regime-Gated Ensemble).")
         self.rl_model = None
-        model_path = "models/ppo_gold_real_final.zip"
+        self.symbol = symbol
+        model_path = f"models/ppo_{self.symbol}_final.zip"
         if os.path.exists(model_path):
             try:
                 self.rl_model = PPO.load(model_path)
@@ -175,8 +176,8 @@ class GoldAIAgent:
         if not self.rl_model:
             return "NEUTRAL"
         try:
-            from rl_env import GoldTradingEnv
-            features = GoldTradingEnv.FEATURE_COLUMNS
+            from rl_env import AssetTradingEnv
+            features = AssetTradingEnv.FEATURE_COLUMNS
             obs_vals = [float(latest_1h.get(col, 0.0)) for col in features]
             obs_vals.extend([0.0, 0.0, 0.0])  # position=0, current_risk_fraction=0, unrealised_pnl=0
             obs = np.nan_to_num(np.array(obs_vals, dtype=np.float32), nan=0.0)

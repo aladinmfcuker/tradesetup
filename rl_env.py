@@ -1,5 +1,5 @@
 """
-rl_env.py — GoldTradingEnv (V6.0 — Continuous Action Space)
+rl_env.py — AssetTradingEnv (V6.0 — Continuous Action Space)
 
 Upgrades:
 - Shifted from Discrete(3) to Continuous Box(-1.0, 1.0) action space.
@@ -15,11 +15,11 @@ import pandas as pd
 import logging
 import math
 
-class GoldTradingEnv(gym.Env):
+class AssetTradingEnv(gym.Env):
     metadata = {'render_modes': ['human', 'system', 'none'], 'render_fps': 30}
 
     FEATURE_COLUMNS = [
-        'close', 'rsi', 'macd', 'macd_signal', 'adx', 'atr', 'z_score', 'vwap',
+        'return_1', 'rsi', 'macd', 'macd_signal', 'adx', 'atr', 'z_score', 'return_5',
         'vwap_dev_pct', 'bb_width', 'realized_vol_20',
         'session_score', 'plus_di', 'minus_di', 'return_1',
         'spread_proxy', 'orderbook_slope', 'bid_ask_pressure', 'trade_delta', 'volume_spikes', 'liquidity_vacuum'

@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from data_feed import BinanceFeed
 from indicators import calculate_indicators
-from ai_agent import GoldAIAgent
+from ai_agent import TradingAIAgent
 from paper_trader import PaperTrader
 from macro_data import get_macro_data
 
@@ -67,13 +67,36 @@ def run_vectorized_quant_backtest(df):
     final_market = df['cum_market_return'].iloc[-2] * 100 - 100
     final_strat = df['cum_strategy_return'].iloc[-2] * 100 - 100
     
+
+    # Calculate Drawdown
+    cum_rets = df['cum_strategy_return']
+    running_max = cum_rets.cummax()
+    drawdown = (cum_rets - running_max) / running_max
+    max_drawdown = drawdown.min()
+
+    # Drawdown Duration (Bars)
+    is_in_drawdown = drawdown < 0
+    drawdown_counts = is_in_drawdown.groupby((~is_in_drawdown).cumsum()).cumcount()
+    max_dd_duration = drawdown_counts.max()
+
+    # Sortino Ratio (Downside deviation only)
+    strat_rets = df['strategy_return'].dropna()
+    downside_rets = strat_rets[strat_rets < 0]
+    # Annualize based on 1H timeframe (252 days * 24 hours)
+    downside_std = downside_rets.std() * np.sqrt(252 * 24)
+    sortino = (strat_rets.mean() * 252 * 24) / downside_std if downside_std > 0 else 0
+
     results = {
         "total_candles": len(df),
         "total_trades": int(total_trades),
         "win_rate": float(win_rate),
         "market_return": float(final_market),
-        "strategy_return": float(final_strat)
+        "strategy_return": float(final_strat),
+        "max_drawdown_pct": float(max_drawdown * 100),
+        "max_drawdown_duration_bars": int(max_dd_duration),
+        "sortino_ratio": float(sortino)
     }
+
     
     with open("backtest_results.json", "w") as f:
         import json
@@ -85,6 +108,9 @@ def run_vectorized_quant_backtest(df):
     logging.info(f"Estimated Win Rate: {win_rate:.2f}%")
     logging.info(f"Market Return: {final_market:.2f}%")
     logging.info(f"Strategy Return: {final_strat:.2f}%")
+    logging.info(f"Max Drawdown: {max_drawdown * 100:.2f}%")
+    logging.info(f"Max Drawdown Duration: {max_dd_duration} bars")
+    logging.info(f"Sortino Ratio: {sortino:.4f}")
     logging.info(f"--------------------------------")
 
 
@@ -127,7 +153,7 @@ async def run_backtest(symbol="xauusdt", timeframe="1h", limit=10, mode="ai"):
     test_data = valid_data_1h.iloc[-limit:]
     logging.info(f"Running AI backtest on {len(test_data)} candles...")
 
-    agent = GoldAIAgent()
+    agent = TradingAIAgent()
     trader = PaperTrader(initial_balance=10000.0)
 
     for index, row in test_data.iterrows():
