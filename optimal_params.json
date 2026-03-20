@@ -1,0 +1,38 @@
+{
+    "z_score_threshold": 1.0,
+    "rsi_overbought": 60.0,
+    "rsi_oversold": 30.0,
+    "expected_win_rate": 50.92867381341731,
+    "expected_return_pct": 2.1870841606470606,
+    "adj_sharpe": 2.6243723903697638,
+    "sharpe_stability": 1.3952531618166157,
+    "walk_forward_folds": 5,
+    "regime_params": {
+        "RANGING": {
+            "z_score_threshold": 1.0,
+            "rsi_overbought": 60.0,
+            "rsi_oversold": 20.0,
+            "adj_sharpe": -7.913089904601684,
+            "mean_sharpe": -1.4374041448153196,
+            "sharpe_stability": 12.951371519572728,
+            "mean_calmar": 1.479924594201777,
+            "expected_win_rate": 49.04761904761905,
+            "expected_return": 0.0696088148362648,
+            "mean_max_drawdown": 0.8171590353166466,
+            "folds_validated": 2
+        },
+        "TRENDING": {
+            "z_score_threshold": 1.0,
+            "rsi_overbought": 60.0,
+            "rsi_oversold": 35.0,
+            "adj_sharpe": 3.880870335075078,
+            "mean_sharpe": 6.751196154341117,
+            "sharpe_stability": 5.740651638532078,
+            "mean_calmar": 2.278127491602748,
+            "expected_win_rate": 56.451873385012924,
+            "expected_return": 3.92350356945749,
+            "mean_max_drawdown": 2.1665200850992545,
+            "folds_validated": 3
+        }
+    }
+}

@@ -1,0 +1,7 @@
+pandas
+websockets
+requests
+fastapi
+uvicorn
+gymnasium
+stable-baselines3
