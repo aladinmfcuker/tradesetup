@@ -159,7 +159,7 @@ class AssetTradingEnv(gym.Env):
             'position': self.position,
             'total_trades': self.total_trades,
             'max_drawdown': round(dd * 100, 2),
-            'sharpe': sharpe if (truncated or terminated) and self.total_trades > 0 else 0.0,
+            'sortino': sortino if (truncated or terminated) and self.total_trades > 0 else 0.0,
             'profit_factor': pf if (truncated or terminated) and self.total_trades > 0 else 0.0
         }
 
