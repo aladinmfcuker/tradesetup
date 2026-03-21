@@ -4,7 +4,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from data_feed import BinanceFeed
 from indicators import calculate_indicators
-from rl_env import GoldTradingEnv
+from rl_env import AssetTradingEnv as GoldTradingEnv
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
