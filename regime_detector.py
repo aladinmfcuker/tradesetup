@@ -135,13 +135,13 @@ def build_confluence_score(rl_action: str, regime_data: dict,
         elif regime == REGIME_RANGING and z < -1.0:  rl_pts, rl_aligned = 25, True
         elif regime == REGIME_RANGING:               rl_pts = 12
         elif regime == REGIME_VOLATILE:              rl_pts = 5
-        else:                                        rl_pts = 0   # counter-trend
+        else:                                        rl_pts = -20 # Severe penalty for fighting the trend
     elif rl_action == "SHORT":
         if regime == REGIME_TRENDING_BEAR:           rl_pts, rl_aligned = 35, True
         elif regime == REGIME_RANGING and z > 1.0:   rl_pts, rl_aligned = 25, True
         elif regime == REGIME_RANGING:               rl_pts = 12
         elif regime == REGIME_VOLATILE:              rl_pts = 5
-        else:                                        rl_pts = 0
+        else:                                        rl_pts = -20 # Severe penalty for fighting the trend
     else:  # NEUTRAL
         rl_pts, rl_aligned = 15, True   # staying flat is always safe
 
@@ -208,8 +208,12 @@ def build_confluence_score(rl_action: str, regime_data: dict,
     score += z_pts
     components['z_score_confirmation'] = z_pts
 
+    # ── Cap Score for Volatile Regimes ───────────────────────────────────────
+    if regime == REGIME_VOLATILE and rl_action != "NEUTRAL":
+        score = min(score, 54) # Force volatile trades to be WEAK at best, encouraging SKIP
+
     # ── Grade & recommendation ───────────────────────────────────────────────
-    score = min(100, score)
+    score = max(0, min(100, score))
     if score >= 75:
         grade = "HIGH_CONVICTION"
         rec   = "EXECUTE — full position size"

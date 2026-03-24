@@ -21,7 +21,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.utils import set_random_seed
 from indicators import calculate_indicators
-from rl_env import GoldTradingEnv
+from rl_env import AssetTradingEnv as GoldTradingEnv
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
